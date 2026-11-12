@@ -1,0 +1,909 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Music Playlist Manager</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+
+:root {
+  --bg: #F2F5F8;
+  --surface: #FFFFFF;
+  --surface-2: #E8EDF2;
+  --ink: #14202B;
+  --ink-2: #51606E;
+  --line: #D3DBE3;
+  --next: #1F5FD1;
+  --next-soft: #DCE8FB;
+  --prev: #B9500B;
+  --prev-soft: #FBE6D6;
+  --ok: #17794A;
+  --bad: #B3261E;
+  --on-accent: #FFFFFF;
+  --focus: #1F5FD1;
+  --font-display: 'Space Grotesk', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E141A; --surface: #161F28; --surface-2: #1D2934; --ink: #E6EDF3; --ink-2: #9DAEBE;
+    --line: #2B3A47; --next: #7BA4FF; --next-soft: #1B2C4A; --prev: #FF9F5A; --prev-soft: #42291A;
+    --ok: #4CC38A; --bad: #FF8279; --on-accent: #0E141A; --focus: #7BA4FF; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E141A; --surface: #161F28; --surface-2: #1D2934; --ink: #E6EDF3; --ink-2: #9DAEBE;
+  --line: #2B3A47; --next: #7BA4FF; --next-soft: #1B2C4A; --prev: #FF9F5A; --prev-soft: #42291A;
+  --ok: #4CC38A; --bad: #FF8279; --on-accent: #0E141A; --focus: #7BA4FF; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 14px; line-height: 1.5; }
+.wrap {
+  max-width: 1180px; margin: 0 auto; padding-block: 20px 44px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+h1, h2 { font-family: var(--font-display); margin: 0; }
+h1 { font-size: 28px; line-height: 1.15; letter-spacing: -0.01em; text-wrap: balance; }
+h2 { font-size: 12px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-2); }
+.mono { font-family: var(--font-mono); }
+button, input { font: inherit; color: inherit; }
+
+.head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; }
+.head p { margin: 0; color: var(--ink-2); }
+.note { margin: 12px 0 16px; padding: 10px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2); color: var(--ink-2); max-width: 78ch; }
+.note b { color: var(--ink); font-weight: 600; }
+
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 14px; min-width: 0; }
+.stat .k { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); }
+.stat .v { font-family: var(--font-display); font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.25; overflow-wrap: anywhere; }
+.stat .s { font-size: 12px; color: var(--ink-2); }
+.stat.good .v { color: var(--ok); }
+.stat.badstat .v { color: var(--bad); }
+
+.cols { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+@media (max-width: 899px) {
+  .cols { display: flex; flex-direction: column; align-items: stretch; }
+  .col { display: contents; }
+  .c-ring { order: 1; } .c-now { order: 2; } .c-add { order: 3; } .c-find { order: 4; }
+  .c-actions { order: 5; } .c-trace { order: 6; } .c-table { order: 7; } .c-log { order: 8; }
+}
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; min-width: 0; }
+.card-h { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 14px; margin-bottom: 12px; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 18px; height: 3px; border-radius: 2px; display: inline-block; }
+.sw.n { background: var(--next); } .sw.p { background: var(--prev); }
+.sw.cur { width: 11px; height: 11px; border-radius: 50%; background: var(--next); }
+.ring-box { max-width: 580px; margin: 0 auto; }
+#ring { display: block; width: 100%; height: auto; aspect-ratio: 1; overflow: visible; }
+.mk-next { fill: var(--next); } .mk-prev { fill: var(--prev); }
+.arc-next { fill: none; stroke: var(--next); stroke-width: 2.5; }
+.arc-prev { fill: none; stroke: var(--prev); stroke-width: 2.5; }
+.ring-empty { fill: none; stroke: var(--line); stroke-width: 2; stroke-dasharray: 6 8; }
+.rn { cursor: pointer; outline: none; }
+.rn circle { fill: var(--surface); stroke: var(--ink-2); stroke-width: 2; transition: fill .25s, stroke .25s; }
+.rn text { fill: var(--ink); font-family: var(--font-mono); font-weight: 600; text-anchor: middle; pointer-events: none; }
+.rn .pos { font-family: var(--font-body); font-weight: 500; fill: var(--ink-2); }
+.rn.cur circle { fill: var(--next); stroke: var(--next); }
+.rn.cur text, .rn.cur .pos { fill: var(--on-accent); }
+.rn:hover circle { stroke: var(--ink); }
+.rn:focus-visible circle { stroke: var(--focus); stroke-width: 5; }
+.rn.enter { transform-box: fill-box; transform-origin: center; animation: pop .4s ease-out; }
+.rn.flash circle { animation: flash 1s ease-out 1; }
+@keyframes pop { from { transform: scale(.35); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes flash { 0%, 60% { stroke: var(--prev); stroke-width: 7; } 100% { stroke-width: 2; } }
+.tag { font-family: var(--font-display); font-weight: 700; font-size: 14px; letter-spacing: 0.1em; fill: var(--ink); }
+.loop-label { font-family: var(--font-mono); font-size: 13px; font-weight: 500; text-anchor: middle; }
+.c-kicker { font-family: var(--font-display); font-weight: 600; font-size: 13px; letter-spacing: 0.14em; fill: var(--ink-2); text-anchor: middle; }
+.c-title { font-family: var(--font-display); font-weight: 600; font-size: 27px; fill: var(--ink); text-anchor: middle; }
+.c-sub { font-family: var(--font-body); font-size: 16px; fill: var(--ink-2); text-anchor: middle; }
+.c-mono { font-family: var(--font-mono); font-size: 14px; fill: var(--ink-2); text-anchor: middle; }
+.hint { margin: 10px 0 0; text-align: center; font-size: 12px; color: var(--ink-2); }
+kbd { font-family: var(--font-mono); font-size: 11px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; }
+
+.now { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px 20px; }
+.now-main { min-width: 0; flex: 1 1 240px; }
+.now-title { font-family: var(--font-display); font-size: 22px; font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; }
+.now-artist { color: var(--ink-2); margin-top: 2px; overflow-wrap: anywhere; }
+.now-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 8px; font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.ptrs { margin-top: 8px; font-family: var(--font-mono); font-size: 12px; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.pn { color: var(--next); font-weight: 600; } .pp { color: var(--prev); font-weight: 600; }
+.nav { display: flex; gap: 10px; flex: 0 1 auto; }
+
+.btn { min-height: 40px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); cursor: pointer; font-weight: 500; }
+.btn:hover:not(:disabled) { border-color: var(--ink-2); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.primary { background: var(--next); border-color: var(--next); color: var(--on-accent); font-weight: 600; }
+.btn.warn { background: transparent; border-color: var(--bad); color: var(--bad); }
+.btn.warn.armed { background: var(--bad); color: var(--surface); font-weight: 600; }
+.btn.ghost { background: transparent; }
+.btn.small { min-height: 32px; padding: 4px 10px; font-size: 12px; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field label, .lbl { font-size: 12px; font-weight: 500; color: var(--ink-2); }
+input[type=text], input[type=number] { width: 100%; min-height: 40px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+input[aria-invalid="true"] { border-color: var(--bad); }
+.err { min-height: 0; font-size: 12px; color: var(--bad); }
+.err:empty { display: none; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.span2 { grid-column: 1 / -1; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.row > .grow { flex: 1 1 160px; min-width: 0; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-bottom: 10px; }
+.seg label { position: relative; cursor: pointer; }
+.seg input { position: absolute; opacity: 0; inset: 0; }
+.seg span { display: block; padding: 7px 14px; font-weight: 500; background: var(--surface); }
+.seg input:checked + span { background: var(--next); color: var(--on-accent); }
+.seg input:focus-visible + span { outline: 3px solid var(--focus); outline-offset: -3px; }
+.sep { border: 0; border-top: 1px solid var(--line); margin: 14px 0; }
+
+.trace-op { font-family: var(--font-display); font-weight: 600; font-size: 16px; margin-bottom: 10px; }
+.trace { display: flex; flex-direction: column; gap: 4px; font-family: var(--font-mono); font-size: 12.5px; }
+.tr { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 14px; padding: 5px 10px; border-left: 3px solid var(--line); background: var(--surface-2); border-radius: 0 6px 6px 0; overflow-wrap: anywhere; }
+.tr .c { font-weight: 600; }
+.tr .n { color: var(--ink-2); }
+.tr.t-next { border-left-color: var(--next); } .tr.t-prev { border-left-color: var(--prev); } .tr.t-ref { border-left-color: var(--ok); }
+@media (min-width: 560px) { .tr { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); } }
+
+.tbl-wrap { overflow-x: auto; margin: 0 -4px; padding: 0 4px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+th { text-align: left; font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-2); padding: 6px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+tbody tr { cursor: pointer; }
+tbody tr:hover td { background: var(--surface-2); }
+tbody tr.cur td { background: var(--next-soft); }
+tbody tr.cur td:first-child { box-shadow: inset 3px 0 0 var(--next); }
+.pill { display: inline-block; margin-left: 6px; padding: 0 6px; border: 1px solid var(--line); border-radius: 999px; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); }
+.empty-row td { text-align: center; color: var(--ink-2); padding: 18px; cursor: default; }
+
+.log { max-height: 280px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); padding: 8px; font-family: var(--font-mono); font-size: 12.5px; }
+.ln { white-space: pre-wrap; overflow-wrap: anywhere; padding: 2px 6px; border-radius: 4px; }
+.ln.act { font-weight: 600; margin-top: 6px; color: var(--ink); }
+.ln.ok { color: var(--ink); } .ln.info { color: var(--ink-2); }
+.ln.warn { color: var(--prev); } .ln.err { color: var(--bad); font-weight: 500; }
+.ln.wrap { background: var(--prev-soft); color: var(--ink); }
+
+@media (max-width: 480px) {
+  h1 { font-size: 24px; }
+  .nav { width: 100%; } .nav .btn { flex: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rn.enter, .rn.flash circle { animation: none; }
+  .rn circle { transition: none; }
+}
+</style>
+
+<div class="wrap">
+  <header class="head">
+    <h1>Music Playlist Manager</h1>
+    <p>A doubly circular linked list, running live</p>
+  </header>
+  <p class="note"><b>Web demo.</b> This page re-creates the project's linked-list logic in JavaScript so it can run in a browser. The submitted program is the C++ console application. The algorithms, the messages and the pointer updates are the same.</p>
+
+  <section class="stats" aria-label="Playlist summary">
+    <div class="stat"><div class="k">Songs</div><div class="v" id="st-count">0</div><div class="s">count</div></div>
+    <div class="stat"><div class="k">Playing time</div><div class="v" id="st-time">00:00</div><div class="s">mm:ss</div></div>
+    <div class="stat"><div class="k">Head</div><div class="v mono" id="st-head">null</div><div class="s">first song</div></div>
+    <div class="stat"><div class="k">Tail</div><div class="v mono" id="st-tail">null</div><div class="s">head.prev</div></div>
+    <div class="stat good" id="st-int-box"><div class="k">Ring integrity</div><div class="v" id="st-int">OK</div><div class="s" id="st-int-s">node.next.prev == node, everywhere</div></div>
+  </section>
+
+  <div class="cols">
+    <div class="col">
+      <section class="card c-ring">
+        <div class="card-h">
+          <h2>The ring</h2>
+          <div class="legend" aria-hidden="true">
+            <span><i class="sw n"></i>next</span><span><i class="sw p"></i>prev</span>
+            <span><i class="sw cur"></i>current song</span>
+          </div>
+        </div>
+        <div class="ring-box">
+          <svg id="ring" viewBox="0 0 600 600" role="img" aria-label="Empty playlist">
+            <defs>
+              <marker id="ah-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto"><path class="mk-next" d="M0,1 L10,5 L0,9 z"/></marker>
+              <marker id="ah-prev" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto"><path class="mk-prev" d="M0,1 L10,5 L0,9 z"/></marker>
+            </defs>
+            <g id="ring-g"></g>
+          </svg>
+        </div>
+        <p class="hint">Click a song to select it. <kbd>&larr;</kbd> <kbd>&rarr;</kbd> play the previous or next song.</p>
+      </section>
+
+      <section class="card c-now" aria-labelledby="h-now">
+        <h2 id="h-now" class="sr" style="position:absolute;left:-9999px">Current song</h2>
+        <div class="now">
+          <div class="now-main" id="now-main"></div>
+          <div class="nav">
+            <button class="btn lock" id="b-prev" type="button">&larr; Previous</button>
+            <button class="btn primary lock" id="b-next" type="button">Next &rarr;</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card c-table">
+        <div class="card-h"><h2>Playlist, walked from head</h2><span class="legend">click a row to select</span></div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>No.</th><th>ID</th><th>Title</th><th>Artist</th><th>Time</th><th>prev</th><th>next</th></tr></thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="card c-add">
+        <div class="card-h"><h2>Add song</h2><span class="legend">goes to the end of the ring</span></div>
+        <form id="add-form" class="form-grid" novalidate>
+          <div class="field"><label for="f-id">Song ID</label><input id="f-id" type="text" inputmode="numeric" autocomplete="off" aria-describedby="e-id"><small class="err" id="e-id"></small></div>
+          <div class="field"><label for="f-dur">Duration (mm:ss)</label><input id="f-dur" type="text" inputmode="numeric" placeholder="3:45" autocomplete="off" aria-describedby="e-dur"><small class="err" id="e-dur"></small></div>
+          <div class="field span2"><label for="f-title">Title</label><input id="f-title" type="text" autocomplete="off" aria-describedby="e-title"><small class="err" id="e-title"></small></div>
+          <div class="field span2"><label for="f-artist">Artist</label><input id="f-artist" type="text" autocomplete="off" aria-describedby="e-artist"><small class="err" id="e-artist"></small></div>
+          <div class="span2 row">
+            <button class="btn primary lock" type="submit">Add song</button>
+            <button class="btn ghost lock" type="button" id="b-examples">Load example songs</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card c-find">
+        <div class="card-h"><h2>Find a song</h2><span class="legend">search, select or remove</span></div>
+        <div class="seg" role="radiogroup" aria-label="Find by">
+          <label><input type="radio" name="fm" value="id" checked><span>Song ID</span></label>
+          <label><input type="radio" name="fm" value="title"><span>Song title</span></label>
+        </div>
+        <div class="field"><label for="f-query" id="l-query">Song ID to look for</label><input id="f-query" type="text" autocomplete="off"></div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn lock" type="button" id="b-search">Search</button>
+          <button class="btn lock" type="button" id="b-select">Select</button>
+          <button class="btn warn lock" type="button" id="b-remove">Remove</button>
+        </div>
+      </section>
+
+      <section class="card c-actions">
+        <div class="card-h"><h2>Repeat and reset</h2></div>
+        <div class="row">
+          <div class="field grow"><label for="f-rep">Songs to play in repeat mode (1 to 100)</label><input id="f-rep" type="number" min="1" max="100" value="7" inputmode="numeric"></div>
+          <button class="btn lock" type="button" id="b-repeat" style="align-self:flex-end">Repeat playlist</button>
+          <button class="btn warn" type="button" id="b-stop" style="align-self:flex-end" hidden>Stop</button>
+        </div>
+        <hr class="sep">
+        <button class="btn warn lock" type="button" id="b-delall">Delete all songs</button>
+      </section>
+
+      <section class="card c-trace">
+        <div class="card-h"><h2>Pointer changes in the last operation</h2></div>
+        <div class="trace-op" id="trace-op"></div>
+        <div class="trace" id="trace"></div>
+      </section>
+
+      <section class="card c-log">
+        <div class="card-h"><h2>Console</h2><button class="btn ghost small" type="button" id="b-clear">Clear</button></div>
+        <div class="log" id="log" role="log" aria-live="polite" aria-label="Console output"></div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+const MAX_TITLE = 30, MAX_ARTIST = 20, MAX_ID = 999999, MAX_SONGS = 16;
+
+function formatDuration(total) {
+  return String(Math.floor(total / 60)).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0');
+}
+
+class SongNode {
+  constructor(id, title, artist, seconds) {
+    this.id = id; this.title = title; this.artist = artist; this.durationSeconds = seconds;
+    this.next = null;   
+    this.prev = null;   
+  }
+}
+
+class MusicPlaylist {
+  constructor() {
+    this.head = null;      
+    this.current = null;   
+    this.count = 0;
+    this.traceTitle = ''; 
+    this.trace = [];       
+  }
+  _begin(title) { this.trace = []; this.traceTitle = title; }
+  _t(code, note) { this.trace.push({ code, note }); }
+  _s(n) { return n ? 'S' + n.id : 'null'; }
+
+  findNodeById(id) {
+    if (this.head === null) return null;
+    let temp = this.head;
+    do { if (temp.id === id) return temp; temp = temp.next; } while (temp !== this.head);
+    return null;
+  }
+  findNodeByTitle(title) {
+    if (this.head === null) return null;
+    const wanted = title.toLowerCase();
+    let temp = this.head;
+    do { if (temp.title.toLowerCase() === wanted) return temp; temp = temp.next; } while (temp !== this.head);
+    return null;
+  }
+  countByTitle(title) {
+    if (this.head === null) return 0;
+    const wanted = title.toLowerCase();
+    let matches = 0, temp = this.head;
+    do { if (temp.title.toLowerCase() === wanted) matches++; temp = temp.next; } while (temp !== this.head);
+    return matches;
+  }
+  matchesByTitle(title) {
+    const out = [];
+    if (this.head === null) return out;
+    const wanted = title.toLowerCase();
+    let temp = this.head;
+    do { if (temp.title.toLowerCase() === wanted) out.push(temp); temp = temp.next; } while (temp !== this.head);
+    return out;
+  }
+
+  addSong(id, title, artist, seconds) {
+    if (!(id > 0) || !title || !artist || !(seconds > 0)) return false;
+    if (this.findNodeById(id) !== null) return false;         
+    const newNode = new SongNode(id, title, artist, seconds);
+    const N = 'S' + id;
+    this._begin('Add song ' + id);
+    if (this.head === null) {
+
+      newNode.next = newNode; this._t('newNode.next = newNode', N + '.next = ' + N);
+      newNode.prev = newNode; this._t('newNode.prev = newNode', N + '.prev = ' + N);
+      this.head = newNode;    this._t('head = newNode', 'head is ' + N);
+      this.current = newNode; this._t('current = newNode', 'current is ' + N);
+    } else {
+      const tail = this.head.prev;                              
+      this._t('tail = head.prev', 'tail is ' + this._s(tail));
+      newNode.next = this.head; this._t('newNode.next = head', N + '.next = ' + this._s(this.head));
+      newNode.prev = tail;      this._t('newNode.prev = tail', N + '.prev = ' + this._s(tail));
+      tail.next = newNode;      this._t('tail.next = newNode', this._s(tail) + '.next = ' + N);
+      this.head.prev = newNode; this._t('head.prev = newNode', this._s(this.head) + '.prev = ' + N);
+    }
+    this.count++;
+    return true;
+  }
+
+  unlinkAndDelete(target) {
+    this._begin('Remove song ' + target.id);
+    if (this.count === 1) {
+      this.head = null; this.current = null;
+      this._t('head = null;  current = null', 'it was the only song: the playlist is empty');
+    } else {
+      const p = target.prev, n = target.next;
+      target.prev.next = target.next; this._t('target.prev.next = target.next', this._s(p) + '.next = ' + this._s(n));
+      target.next.prev = target.prev; this._t('target.next.prev = target.prev', this._s(n) + '.prev = ' + this._s(p));
+      if (target === this.head)    { this.head = target.next;    this._t('head = target.next', 'head moves to ' + this._s(n)); }
+      if (target === this.current) { this.current = target.next; this._t('current = target.next', 'current moves to ' + this._s(n)); }
+    }
+    this._t('delete target', this._s(target) + ' is freed');
+    target.next = null; target.prev = null;                   
+    this.count--;
+  }
+  removeSongById(id) {
+    const t = this.findNodeById(id);
+    if (t === null) return false;
+    this.unlinkAndDelete(t); return true;
+  }
+
+  deleteAllSongs() {
+    if (this.head === null) return;
+    this._begin('Delete all songs');
+    const last = this.head.prev;
+    this.head.prev.next = null;
+    this._t('head.prev.next = null', 'ring broken after ' + this._s(last) + ', now an ordinary list');
+    while (this.head !== null) {
+      const toDelete = this.head;
+      this.head = this.head.next;
+      this._t('delete S' + toDelete.id, 'head moves on first, then the node is freed');
+      toDelete.next = null; toDelete.prev = null;
+    }
+    this.current = null; this.count = 0;
+    this._t('current = null;  count = 0', 'playlist reset');
+  }
+
+  selectById(id) {
+    const f = this.findNodeById(id);
+    if (f === null) return false;
+    this._begin('Select song ' + id);
+    this.current = f; this._t('current = found', 'current is ' + this._s(f));
+    return true;
+  }
+
+  nextSong() {
+    if (this.current === null) return null;
+    const from = this.current;
+    const wrapped = (this.current === this.head.prev);
+    this.current = this.current.next;
+    this._begin('Next song');
+    this._t('current = current.next', this._s(from) + ' to ' + this._s(this.current) + (wrapped ? '  (wrapped: last to first)' : ''));
+    return { song: this.current, wrapped };
+  }
+  previousSong() {
+    if (this.current === null) return null;
+    const from = this.current;
+    const wrapped = (this.current === this.head);
+    this.current = this.current.prev;
+    this._begin('Previous song');
+    this._t('current = current.prev', this._s(from) + ' to ' + this._s(this.current) + (wrapped ? '  (wrapped: first to last)' : ''));
+    return { song: this.current, wrapped };
+  }
+
+  isEmpty() { return this.count === 0; }
+  getPosition(node) {
+    if (!node || this.head === null) return 0;
+    let pos = 1, temp = this.head;
+    do { if (temp === node) return pos; temp = temp.next; pos++; } while (temp !== this.head);
+    return 0;
+  }
+  totalSeconds() {
+    if (this.head === null) return 0;
+    let total = 0, temp = this.head;
+    do { total += temp.durationSeconds; temp = temp.next; } while (temp !== this.head);
+    return total;
+  }
+  toArray() {
+    const a = [];
+    if (this.head === null) return a;
+    let t = this.head;
+    do { a.push(t); t = t.next; } while (t !== this.head);
+    return a;
+  }
+
+  verifyIntegrity() {
+    if (this.head === null) return this.count === 0 && this.current === null;
+    if (this.count <= 0 || this.current === null) return false;
+    let temp = this.head, currentFound = false;
+    for (let i = 0; i < this.count; i++) {
+      if (temp.next === null || temp.prev === null) return false;
+      if (temp.next.prev !== temp || temp.prev.next !== temp) return false;
+      if (temp === this.current) currentFound = true;
+      temp = temp.next;
+    }
+    return temp === this.head && currentFound;
+  }
+}
+
+
+const isAllDigits = t => /^[0-9]+$/.test(t);
+function parseInteger(text, min, max) {
+  if (!isAllDigits(text) || text.length > 9) return null;
+  const v = parseInt(text, 10);
+  return (v < min || v > max) ? null : v;
+}
+function parseDuration(text) {
+  const colon = text.indexOf(':');
+  if (colon < 0) return null;
+  const m = text.slice(0, colon).trim(), s = text.slice(colon + 1).trim();
+  if (!isAllDigits(m) || !isAllDigits(s) || m.length > 3 || s.length > 2) return null;
+  const secs = parseInt(s, 10);
+  if (secs > 59) return null;
+  const total = parseInt(m, 10) * 60 + secs;
+  return total > 0 ? total : null;
+}
+
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+const pl = new MusicPlaylist();
+const ui = { enterId: null, flashId: null, busy: false, repTimer: null, delTimer: null };
+const EXAMPLES = [
+  [101, 'Shape of You', 'Ed Sheeran', 233],
+  [102, 'Blinding Lights', 'The Weeknd', 200],
+  [103, 'Believer', 'Imagine Dragons', 204],
+  [104, 'Levitating', 'Dua Lipa', 203],
+  [105, 'Counting Stars', 'OneRepublic', 257]
+];
+
+function log(text, kind) {
+  const el = $('log'), d = document.createElement('div');
+  d.className = 'ln ' + (kind || 'ok');
+  d.textContent = text;
+  el.appendChild(d);
+  while (el.children.length > 250) el.removeChild(el.firstChild);
+  el.scrollTop = el.scrollHeight;
+}
+const act = t => log('> ' + t, 'act');
+function songText(song) {
+  return '  Song No. : ' + pl.getPosition(song) + ' of ' + pl.count + '\n' +
+         '  Song ID  : ' + song.id + '\n' +
+         '  Title    : ' + song.title + '\n' +
+         '  Artist   : ' + song.artist + '\n' +
+         '  Duration : ' + formatDuration(song.durationSeconds);
+}
+
+function wrapTitle(text, max) {
+  if (text.length <= max) return [text];
+  let cut = text.lastIndexOf(' ', max);
+  if (cut < max * 0.4) cut = max;
+  const a = text.slice(0, cut).trim();
+  let b = text.slice(cut).trim();
+  if (b.length > max) b = b.slice(0, max - 1) + '…';
+  return [a, b];
+}
+
+function renderRing() {
+  const nodes = pl.toArray(), n = nodes.length;
+  const CX = 300, CY = 300, R = 208;
+  const r = n <= 5 ? 34 : n <= 8 ? 30 : n <= 11 ? 26 : 22;
+  const ang = i => -Math.PI / 2 + 2 * Math.PI * i / n;
+  const P = (rad, a) => [CX + rad * Math.cos(a), CY + rad * Math.sin(a)];
+  const f = v => v.toFixed(1);
+  let out = '';
+
+  if (n === 0) {
+    out += '<circle class="ring-empty" cx="300" cy="300" r="' + R + '"/>';
+    out += '<text class="c-kicker" x="300" y="258">EMPTY PLAYLIST</text>';
+    out += '<text class="c-mono" x="300" y="296">head = null</text>';
+    out += '<text class="c-mono" x="300" y="318">current = null</text>';
+    out += '<text class="c-mono" x="300" y="340">count = 0</text>';
+    out += '<text class="c-sub" x="300" y="384">The first song will point to itself.</text>';
+  } else {
+    const cur = pl.current;
+    const lines = wrapTitle(cur.title, 17);
+    const total = 18 + 14 + lines.length * 32 + 26 + 24;
+    let y = 300 - total / 2 + 12;
+    out += '<text class="c-kicker" x="300" y="' + f(y) + '">NOW PLAYING</text>'; y += 40;
+    lines.forEach(l => { out += '<text class="c-title" x="300" y="' + f(y) + '">' + esc(l) + '</text>'; y += 32; });
+    y -= 2;
+    out += '<text class="c-sub" x="300" y="' + f(y + 8) + '">' + esc(cur.artist) + '</text>'; y += 28;
+    out += '<text class="c-sub" x="300" y="' + f(y + 8) + '">Song ' + pl.getPosition(cur) + ' of ' + n + '  ·  ' + formatDuration(cur.durationSeconds) + '</text>';
+  }
+
+  if (n === 1) {
+    const [x, y] = P(R, ang(0));
+    out += '<path class="arc-next" marker-end="url(#ah-next)" d="M' + f(x + 12) + ' ' + f(y - r) + ' C' + f(x + 36) + ' ' + f(y - r - 52) + ' ' + f(x - 36) + ' ' + f(y - r - 52) + ' ' + f(x - 12) + ' ' + f(y - r) + '"/>';
+    out += '<path class="arc-prev" marker-end="url(#ah-prev)" d="M' + f(x - 12) + ' ' + f(y + r) + ' C' + f(x - 36) + ' ' + f(y + r + 52) + ' ' + f(x + 36) + ' ' + f(y + r + 52) + ' ' + f(x + 12) + ' ' + f(y + r) + '"/>';
+    out += '<text class="loop-label" fill="var(--next)" x="' + f(x) + '" y="' + f(y - r - 62) + '">next = itself</text>';
+    out += '<text class="loop-label" fill="var(--prev)" x="' + f(x) + '" y="' + f(y + r + 72) + '">prev = itself</text>';
+  } else if (n >= 2) {
+    const d = (r + 7) / R, Rn = R + r * 0.32, Rp = R - r * 0.32;
+    for (let i = 0; i < n; i++) {
+      const a1 = ang(i) + d, a2 = ang(i) + 2 * Math.PI / n - d;
+      const [nx1, ny1] = P(Rn, a1), [nx2, ny2] = P(Rn, a2);
+      out += '<path class="arc-next" marker-end="url(#ah-next)" d="M' + f(nx1) + ' ' + f(ny1) + ' A' + f(Rn) + ' ' + f(Rn) + ' 0 0 1 ' + f(nx2) + ' ' + f(ny2) + '"/>';
+      const [px1, py1] = P(Rp, a2), [px2, py2] = P(Rp, a1);
+      out += '<path class="arc-prev" marker-end="url(#ah-prev)" d="M' + f(px1) + ' ' + f(py1) + ' A' + f(Rp) + ' ' + f(Rp) + ' 0 0 0 ' + f(px2) + ' ' + f(py2) + '"/>';
+    }
+  }
+
+
+  nodes.forEach((s, i) => {
+    const [x, y] = P(R, ang(i));
+    const cls = 'rn' + (s === pl.current ? ' cur' : '') + (s.id === ui.enterId ? ' enter' : '') + (s.id === ui.flashId ? ' flash' : '');
+    out += '<g class="' + cls + '" tabindex="0" role="button" data-id="' + s.id + '" aria-label="Song ' + (i + 1) + ', ID ' + s.id + ', ' + esc(s.title) + '. Select this song">';
+    out += '<title>' + esc(s.title) + ' by ' + esc(s.artist) + ' (' + formatDuration(s.durationSeconds) + ')</title>';
+    out += '<circle cx="' + f(x) + '" cy="' + f(y) + '" r="' + r + '"/>';
+    if (r >= 26) {
+      const fs1 = r >= 30 ? 12 : 11, fs2 = r >= 30 ? 17 : 15;
+      out += '<text class="pos" font-size="' + fs1 + '" x="' + f(x) + '" y="' + f(y - 6) + '">#' + (i + 1) + '</text>';
+      out += '<text font-size="' + fs2 + '" x="' + f(x) + '" y="' + f(y + 13) + '">' + s.id + '</text>';
+    } else {
+      out += '<text font-size="14" x="' + f(x) + '" y="' + f(y + 5) + '">' + s.id + '</text>';
+    }
+    out += '</g>';
+  });
+
+  if (n === 1) {
+    const [x, y] = P(R, ang(0));
+    out += '<text class="tag" x="' + f(x + r + 10) + '" y="' + f(y + 5) + '">HEAD &amp; TAIL</text>';
+  } else if (n >= 2) {
+    const tag = (i, label) => {
+      const a = ang(i), [tx, ty] = P(R + r + 12, a), c = Math.cos(a);
+      const anchor = c > 0.3 ? 'start' : c < -0.3 ? 'end' : 'middle';
+      return '<text class="tag" text-anchor="' + anchor + '" x="' + f(tx) + '" y="' + f(ty + 5) + '">' + label + '</text>';
+    };
+    out += tag(0, 'HEAD') + tag(n - 1, 'TAIL');
+  }
+
+  $('ring-g').innerHTML = out;
+  $('ring').setAttribute('aria-label', n === 0 ? 'Empty playlist' :
+    'Doubly circular linked list with ' + n + ' songs. Current song: ' + pl.current.title + ' by ' + pl.current.artist + '.');
+  ui.enterId = null;
+}
+
+function renderStats() {
+  $('st-count').textContent = pl.count;
+  $('st-time').textContent = formatDuration(pl.totalSeconds());
+  $('st-head').textContent = pl.head ? 'S' + pl.head.id : 'null';
+  $('st-tail').textContent = pl.head ? 'S' + pl.head.prev.id : 'null';
+  const ok = pl.verifyIntegrity();
+  $('st-int').textContent = ok ? 'OK' : 'BROKEN';
+  const box = $('st-int-box');
+  box.classList.toggle('good', ok); box.classList.toggle('badstat', !ok);
+}
+
+function renderNow() {
+  const c = pl.current, box = $('now-main');
+  const hasSongs = !pl.isEmpty();
+  $('b-prev').disabled = $('b-next').disabled = !hasSongs || ui.busy;
+  if (!c) {
+    box.innerHTML = '<div class="now-title">No song selected</div><div class="now-artist">The playlist is empty. Add a song or load the examples.</div>';
+    return;
+  }
+  box.innerHTML =
+    '<div class="now-title">' + esc(c.title) + '</div>' +
+    '<div class="now-artist">' + esc(c.artist) + '</div>' +
+    '<div class="now-meta"><span>Song ' + pl.getPosition(c) + ' of ' + pl.count + '</span><span>ID ' + c.id + '</span><span>' + formatDuration(c.durationSeconds) + '</span></div>' +
+    '<div class="ptrs"><span class="pp">prev &rarr; S' + c.prev.id + '</span><span class="pn">next &rarr; S' + c.next.id + '</span></div>';
+}
+
+function renderTable() {
+  const rows = pl.toArray();
+  if (!rows.length) { $('tbody').innerHTML = '<tr class="empty-row"><td colspan="7">The playlist is empty.</td></tr>'; return; }
+  const tail = pl.head.prev;
+  $('tbody').innerHTML = rows.map((s, i) =>
+    '<tr class="' + (s === pl.current ? 'cur' : '') + '" data-id="' + s.id + '">' +
+    '<td>' + (i + 1) + (s === pl.head ? '<span class="pill">head</span>' : '') + (s === tail && s !== pl.head ? '<span class="pill">tail</span>' : '') + '</td>' +
+    '<td class="mono">' + s.id + '</td><td>' + esc(s.title) + '</td><td>' + esc(s.artist) + '</td>' +
+    '<td class="mono">' + formatDuration(s.durationSeconds) + '</td>' +
+    '<td class="mono pp">S' + s.prev.id + '</td><td class="mono pn">S' + s.next.id + '</td></tr>').join('');
+}
+
+function renderTrace() {
+  $('trace-op').textContent = pl.traceTitle || 'No operation yet';
+  $('trace').innerHTML = pl.trace.map(t => {
+    const cls = /\.next\s*=/.test(t.code) ? 't-next' : /\.prev\s*=/.test(t.code) ? 't-prev' : 't-ref';
+    return '<div class="tr ' + cls + '"><span class="c">' + esc(t.code) + '</span><span class="n">// ' + esc(t.note) + '</span></div>';
+  }).join('');
+}
+
+function renderAll() { renderStats(); renderRing(); renderNow(); renderTable(); renderTrace(); }
+
+function setBusy(on) {
+  ui.busy = on;
+  document.querySelectorAll('.lock').forEach(b => { b.disabled = on; });
+  $('b-stop').hidden = !on;
+  $('b-repeat').hidden = on;
+  renderNow();
+}
+
+function doNext() {
+  if (pl.isEmpty()) { log('The playlist is empty. Please add songs first.', 'warn'); return; }
+  act('Play next song');
+  const { song, wrapped } = pl.nextSong();
+  if (pl.count === 1) log('This is the only song in the playlist, so it plays again.', 'info');
+  else if (wrapped) log('** End of playlist reached. Wrapping around to the FIRST song. **', 'wrap');
+  log('Now playing (next song):\n' + songText(song));
+  renderAll();
+}
+function doPrev() {
+  if (pl.isEmpty()) { log('The playlist is empty. Please add songs first.', 'warn'); return; }
+  act('Play previous song');
+  const { song, wrapped } = pl.previousSong();
+  if (pl.count === 1) log('This is the only song in the playlist, so it plays again.', 'info');
+  else if (wrapped) log('** Start of playlist reached. Wrapping around to the LAST song. **', 'wrap');
+  log('Now playing (previous song):\n' + songText(song));
+  renderAll();
+}
+function selectNode(node, announce) {
+  if (!node || ui.busy) return;
+  if (announce) act('Select song ' + node.id);
+  pl.selectById(node.id);
+  log('Song selected:\n' + songText(node));
+  renderAll();
+}
+
+function setErr(field, msg) {
+  const inp = $('f-' + field);
+  $('e-' + field).textContent = msg || '';
+  if (msg) inp.setAttribute('aria-invalid', 'true'); else inp.removeAttribute('aria-invalid');
+}
+function nextFreeId() {
+  const ids = pl.toArray().map(s => s.id);
+  return ids.length ? Math.min(Math.max(...ids) + 1, MAX_ID) : 101;
+}
+
+function doAdd(ev) {
+  ev.preventDefault();
+  if (ui.busy) return;
+  ['id', 'dur', 'title', 'artist'].forEach(k => setErr(k, ''));
+  act('Add song');
+  if (pl.count >= MAX_SONGS) {
+    log('Demo limit: the ring is drawn for up to ' + MAX_SONGS + ' songs. (The C++ program has no limit.)', 'warn'); return;
+  }
+  const idTxt = $('f-id').value.trim(), title = $('f-title').value.trim(), artist = $('f-artist').value.trim(), durTxt = $('f-dur').value.trim();
+  let bad = false;
+  const id = parseInteger(idTxt, 1, MAX_ID);
+  if (id === null) { setErr('id', 'Enter a whole number from 1 to ' + MAX_ID + '.'); log('Invalid input! Please enter a whole number from 1 to ' + MAX_ID + '.', 'err'); bad = true; }
+  else if (pl.findNodeById(id)) { setErr('id', 'This ID is already used.'); log('Error: a song with ID ' + id + ' already exists. Song not added.', 'err'); bad = true; }
+  if (!title) { setErr('title', 'Title cannot be empty!'); log('Title cannot be empty!', 'err'); bad = true; }
+  else if (title.length > MAX_TITLE) { setErr('title', 'Title is too long (maximum ' + MAX_TITLE + ' characters)!'); log('Title is too long (maximum ' + MAX_TITLE + ' characters)!', 'err'); bad = true; }
+  if (!artist) { setErr('artist', 'Artist name cannot be empty!'); log('Artist name cannot be empty!', 'err'); bad = true; }
+  else if (artist.length > MAX_ARTIST) { setErr('artist', 'Artist name is too long (maximum ' + MAX_ARTIST + ' characters)!'); log('Artist name is too long (maximum ' + MAX_ARTIST + ' characters)!', 'err'); bad = true; }
+  const secs = parseDuration(durTxt);
+  if (secs === null) { setErr('dur', 'Use mm:ss, seconds 00 to 59, above 00:00.'); log('Invalid duration! Use mm:ss with seconds from 00 to 59, and a length above 00:00.', 'err'); bad = true; }
+  if (bad) return;
+  pl.addSong(id, title, artist, secs);
+  ui.enterId = id;
+  log('Song "' + title + '" added successfully as song no. ' + pl.count + '.', 'ok');
+  ['f-title', 'f-artist', 'f-dur'].forEach(k => { $(k).value = ''; });
+  $('f-id').value = nextFreeId();
+  renderAll();
+}
+
+function loadExamples() {
+  if (ui.busy) return;
+  act('Load example songs');
+  let added = 0;
+  for (const [id, t, a, d] of EXAMPLES) {
+    if (pl.count >= MAX_SONGS) break;
+    if (pl.addSong(id, t, a, d)) { added++; ui.enterId = id; }
+  }
+  log(added ? 'Added ' + added + ' example song(s).' : 'The example songs are already in the playlist.', added ? 'ok' : 'info');
+  $('f-id').value = nextFreeId();
+  renderAll();
+}
+
+function findMode() { return document.querySelector('input[name="fm"]:checked').value; }
+// Reads the "find" box. Returns { mode, id } or { mode, title }, or null (after logging why).
+function readQuery() {
+  const mode = findMode(), q = $('f-query').value.trim();
+  if (mode === 'id') {
+    const id = parseInteger(q, 1, MAX_ID);
+    if (id === null) { log('Invalid input! Please enter a whole number from 1 to ' + MAX_ID + '.', 'err'); return null; }
+    return { mode, id };
+  }
+  if (!q) { log('Title cannot be empty!', 'err'); return null; }
+  if (q.length > MAX_TITLE) { log('Title is too long (maximum ' + MAX_TITLE + ' characters)!', 'err'); return null; }
+  return { mode, title: q };
+}
+function listMatches(title) {
+  log(pl.matchesByTitle(title).map(s => '   No. ' + pl.getPosition(s) + ' | ID ' + s.id + ' | ' + s.title + ' | ' + s.artist + ' | ' + formatDuration(s.durationSeconds)).join('\n'), 'info');
+}
+function flash(node) {
+  ui.flashId = node.id; renderRing();
+  setTimeout(() => { ui.flashId = null; if (!ui.busy) renderRing(); }, 1100);
+}
+
+function doSearch() {
+  act('Search song');
+  if (pl.isEmpty()) { log('The playlist is empty. Nothing to search.', 'warn'); return; }
+  const q = readQuery(); if (!q) return;
+  if (q.mode === 'id') {
+    const s = pl.findNodeById(q.id);
+    if (!s) { log('Song with ID ' + q.id + ' was not found.', 'warn'); return; }
+    log('Song found:\n' + songText(s)); flash(s);
+  } else {
+    const m = pl.countByTitle(q.title);
+    if (m === 0) log('No song titled "' + q.title + '" was found.', 'warn');
+    else if (m === 1) { const s = pl.findNodeByTitle(q.title); log('Song found:\n' + songText(s)); flash(s); }
+    else { log(m + ' songs found with this title:', 'ok'); listMatches(q.title); }
+  }
+}
+
+function doSelectFromBox() {
+  act('Select song');
+  if (pl.isEmpty()) { log('The playlist is empty. Nothing to select.', 'warn'); return; }
+  const q = readQuery(); if (!q) return;
+  if (q.mode === 'id') {
+    const s = pl.findNodeById(q.id);
+    if (!s) { log('Song with ID ' + q.id + ' was not found. Selection unchanged.', 'warn'); return; }
+    selectNode(s, false);
+  } else {
+    const m = pl.countByTitle(q.title);
+    if (m === 0) log('No song titled "' + q.title + '" was found. Selection unchanged.', 'warn');
+    else if (m > 1) { log(m + ' songs share this title:', 'ok'); listMatches(q.title); log('Please select by Song ID instead.', 'info'); }
+    else selectNode(pl.findNodeByTitle(q.title), false);
+  }
+}
+
+function removeAndReport(id) {
+  const song = pl.findNodeById(id);
+  if (!song) { log('Song with ID ' + id + ' was not found.', 'warn'); return; }
+  const title = song.title, wasCurrent = (song === pl.current);   // copy before the node is freed
+  pl.removeSongById(id);
+  log('Song "' + title + '" (ID ' + id + ') removed successfully.', 'ok');
+  if (pl.isEmpty()) log('The playlist is now empty.', 'info');
+  else if (wasCurrent) log('The removed song was the current song. The next song is now selected:\n' + songText(pl.current));
+  renderAll();
+}
+function doRemove() {
+  act('Remove song');
+  if (pl.isEmpty()) { log('The playlist is empty. Nothing to remove.', 'warn'); return; }
+  const q = readQuery(); if (!q) return;
+  if (q.mode === 'id') { removeAndReport(q.id); return; }
+  const m = pl.countByTitle(q.title);
+  if (m === 0) log('No song titled "' + q.title + '" was found.', 'warn');
+  else if (m > 1) { log(m + ' songs share this title:', 'ok'); listMatches(q.title); log('Please remove by Song ID so the right song is deleted.', 'info'); }
+  else removeAndReport(pl.findNodeByTitle(q.title).id);
+}
+
+function doRepeat() {
+  act('Repeat playlist');
+  if (pl.isEmpty()) { log('The playlist is empty. Please add songs first.', 'warn'); return; }
+  const n = parseInteger($('f-rep').value.trim(), 1, 100);
+  if (n === null) { log('Invalid input! Please enter a whole number from 1 to 100.', 'err'); return; }
+  log('Repeat mode started: ' + n + ' song(s), beginning with the current song.', 'ok');
+  setBusy(true);
+  let i = 1;
+  const step = () => {
+    log('[' + i + '/' + n + '] Now playing:\n' + songText(pl.current));
+    renderAll();
+    if (i >= n) { finishRepeat('Repeat mode finished. The last played song is now selected.'); return; }
+    ui.repTimer = setTimeout(() => {
+      const res = pl.nextSong();
+      if (res.wrapped && pl.count > 1) log('** End of playlist reached. Repeating from the FIRST song. **', 'wrap');
+      i++; step();
+    }, 650);
+  };
+  step();
+}
+function finishRepeat(msg) {
+  clearTimeout(ui.repTimer); ui.repTimer = null;
+  log(msg, 'ok'); setBusy(false);
+}
+
+function doDeleteAll() {
+  const b = $('b-delall');
+  if (pl.isEmpty()) { act('Delete all songs'); log('The playlist is already empty.', 'warn'); return; }
+  if (!b.classList.contains('armed')) {
+    b.classList.add('armed'); b.textContent = 'Click again to delete all ' + pl.count + ' songs';
+    ui.delTimer = setTimeout(disarmDelete, 4000); return;
+  }
+  disarmDelete();
+  act('Delete all songs');
+  pl.deleteAllSongs();
+  log('All songs deleted. The playlist has been reset.', 'ok');
+  $('f-id').value = nextFreeId();
+  renderAll();
+}
+function disarmDelete() {
+  clearTimeout(ui.delTimer);
+  const b = $('b-delall'); b.classList.remove('armed'); b.textContent = 'Delete all songs';
+}
+
+$('add-form').addEventListener('submit', doAdd);
+$('b-examples').addEventListener('click', loadExamples);
+$('b-next').addEventListener('click', doNext);
+$('b-prev').addEventListener('click', doPrev);
+$('b-search').addEventListener('click', doSearch);
+$('b-select').addEventListener('click', doSelectFromBox);
+$('b-remove').addEventListener('click', doRemove);
+$('b-repeat').addEventListener('click', doRepeat);
+$('b-stop').addEventListener('click', () => finishRepeat('Repeat mode stopped.'));
+$('b-delall').addEventListener('click', doDeleteAll);
+$('b-clear').addEventListener('click', () => { $('log').textContent = ''; });
+document.querySelectorAll('input[name="fm"]').forEach(r => r.addEventListener('change', () => {
+  $('l-query').textContent = findMode() === 'id' ? 'Song ID to look for' : 'Song title to look for';
+  $('f-query').value = '';
+  $('f-query').setAttribute('inputmode', findMode() === 'id' ? 'numeric' : 'text');
+}));
+$('f-query').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); doSearch(); } });
+
+$('ring').addEventListener('click', e => {
+  const g = e.target.closest('.rn'); if (g) selectNode(pl.findNodeById(parseInt(g.dataset.id, 10)), true);
+});
+$('ring').addEventListener('keydown', e => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const g = e.target.closest('.rn'); if (!g) return;
+  e.preventDefault(); selectNode(pl.findNodeById(parseInt(g.dataset.id, 10)), true);
+});
+$('tbody').addEventListener('click', e => {
+  const tr = e.target.closest('tr[data-id]'); if (tr) selectNode(pl.findNodeById(parseInt(tr.dataset.id, 10)), true);
+});
+document.addEventListener('keydown', e => {
+  if (ui.busy) { if (e.key === 'Escape') finishRepeat('Repeat mode stopped.'); return; }
+  const t = e.target.tagName;
+  if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT' || e.altKey || e.ctrlKey || e.metaKey) return;
+  if (e.key === 'ArrowRight') { e.preventDefault(); doNext(); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); doPrev(); }
+});
+
+EXAMPLES.forEach(([id, t, a, d]) => pl.addSong(id, t, a, d));
+$('f-id').value = nextFreeId();
+log('Loaded 5 example songs (IDs 101 to 105). Delete them or add your own.', 'info');
+renderAll();
+</script>
+
+</body></html>
