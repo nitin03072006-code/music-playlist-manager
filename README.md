@@ -2,7 +2,7 @@
 
 A menu-driven C++17 console application that manages a music playlist. The playlist is stored in a **doubly circular linked list** written from scratch. There are no arrays, vectors or STL containers holding the songs.
 
-> **Student:** _your name_ · **Roll no.:** _your roll number_ · **Course / Subject:** Data Structures and Algorithms · **College:** _your college_
+> **Student:** Nitin Kumar and Alpit Garg· **Roll no.:** 23 & 25 · **Course / Subject:** Data Structures and Algorithms · **College:** MANIT
 
 ---
 
@@ -21,16 +21,6 @@ A music player must let the user build a playlist, move to the next or previous 
 ## Data structure used
 
 **Doubly circular linked list**: every node stores a song and two pointers, `next` and `prev`.
-
-```
-        +------+  next   +------+  next   +------+
-   +--> | S1   | ------> | S2   | ------> | S3   | ---+
-   |    |      | <------ |      | <------ |      |    |
-   |    +------+  prev   +------+  prev   +------+    |
-   |       ^ head                                      |
-   |       +---- S1->prev points to the LAST node -----+
-   +-------------- S3->next points to the FIRST node
-```
 
 * last node's `next` -> first node, and first node's `prev` -> last node
 * `head` = first song, `current` = selected song, `count` = number of songs
@@ -61,17 +51,6 @@ The menu functions only call `MusicPlaylist` methods. They never touch the point
 | 12 | Exit | Leaves the program and releases all memory. |
 
 Also included: clear messages for empty playlists and missing songs, wrap-around notices, and validation of menu choices, IDs, text fields and `mm:ss` durations.
-
-## Project files
-
-```
-music-playlist-manager/
-├── main.cpp              the complete program
-├── PROJECT_GUIDE.md      architecture, function explanations, sample I/O, complexity, test cases, viva Q&A
-├── README.md             this file
-└── tests/
-    └── unit_tests.cpp    optional automated tests
-```
 
 ## How to run
 
